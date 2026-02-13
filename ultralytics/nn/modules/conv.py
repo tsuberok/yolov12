@@ -122,7 +122,7 @@ class BitConvDWsep(nn.Module):
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
         """Initialize Conv layer with given arguments including activation."""
         super().__init__()
-        self.bitConv = BitConv(toDequant=False,
+        self.bitConv = BitConv(toDequant=True,
                                in_channels = c1,
                                out_channels = c2,
                                kernel_size = k,
@@ -138,8 +138,8 @@ class BitConvDWsep(nn.Module):
     def forward(self, x):
         """Apply convolution, batch normalization and activation to input tensor."""
         #return self.act(self.bn(self.bitConv(x)))
-        # return self.act(self.bitConv(x))
-        return self.act(self.bn(self.conv(x)))
+        return self.act(self.bitConv(x))
+        # return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
         """Apply convolution and activation without batch normalization."""
