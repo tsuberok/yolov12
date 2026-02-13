@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch import Tensor
 
 __all__ = (
+    "BitConv",
     "Conv",
     "Conv2",
     "LightConv",
@@ -102,7 +103,7 @@ class BitConvDWsep(nn.Module):
                                     stride = s, 
                                     padding = autopad(k, p, d), 
                                     dilation = 1,
-                                    groups =c1,
+                                    groups = c1,
                                     bias = False)
         self.bitConvSep = BitConv(toDequant=True, in_channels = c1, 
                                   out_channels = c2, 
