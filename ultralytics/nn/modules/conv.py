@@ -196,13 +196,13 @@ class Conv(nn.Module):
     def forward(self, x):
         """Apply convolution, batch normalization and activation to input tensor."""
         #return self.act(self.bn(self.bitConv(x)))
-        LOGGER.info("FORWARD BITCONV UNFUSED")
+        # LOGGER.info("FORWARD BITCONV UNFUSED")
         return self.act(self.bitConv(x))
         # return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
         """Apply convolution and activation without batch normalization."""
-        LOGGER.info("FORWARD BITCONV FUSED")
+        # LOGGER.info("FORWARD BITCONV FUSED")
         return self.act(self.bitConv(x))
 
 
