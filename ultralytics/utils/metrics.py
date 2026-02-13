@@ -893,7 +893,8 @@ class DetMetrics(SimpleClass):
     @property
     def curves_results(self):
         """Returns dictionary of computed performance metrics and statistics."""
-        return self.box.curves_results
+        pass
+        # return self.box.curves_results
 
 
 class SegmentMetrics(SimpleClass):
