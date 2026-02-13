@@ -6,6 +6,7 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 __all__ = (
     "Conv",
@@ -32,6 +33,94 @@ def autopad(k, p=None, d=1):  # kernel, padding, dilation
     if p is None:
         p = k // 2 if isinstance(k, int) else [x // 2 for x in k]  # auto-pad
     return p
+
+class BitConv(nn.Conv2d):
+    def __init__(self, toDequant: bool, *args, num_bits: int = 8, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.num_bits = num_bits
+        self.toDequant = toDequant
+        self.eps:float = 1e-5
+        self.quantization_range: int = 2 ** (num_bits - 1) # Q_b in the paper
+    def ste_weights(self, weights_gamma: float) -> Tensor:
+        eps: float = 1e-7
+        scaled_weights:Tensor = self.weight / (weights_gamma + eps)
+        bin_weights_no_grad: Tensor = torch.clamp(torch.round(scaled_weights), min=-1, max=1)
+        bin_weights_with_grad: Tensor = (bin_weights_no_grad - self.weight).detach() + self.weight
+        return bin_weights_with_grad
+    def binarize_weights(self, weights_gamma: float) -> Tensor:
+        binarized_weights = self.ste_weights(weights_gamma)
+        return binarized_weights
+    def quantize_activations(self, _input:Tensor, input_gamma: float) -> Tensor:
+        # Equation 4 BitNet paper
+        quantized_input = torch.clamp(
+                _input * self.quantization_range / input_gamma,
+                -self.quantization_range + self.eps,
+                self.quantization_range - self.eps,
+            )
+        #quantized_input = torch.floor(quantized_input) #to see if this works with int activations. Only in inference 
+        return quantized_input
+    def dequantize_activations(self, _input: Tensor, input_gamma: float, beta: float) -> Tensor:
+        return _input * input_gamma * beta / self.quantization_range
+
+
+    def forward(self, _input: Tensor) -> Tensor:
+        # print("input mean and sd = ", torch.mean(_input).item(), torch.std(_input).item()) #debug info
+        # print("max and min = ", torch.max(_input).item(), torch.min(_input).item())
+        normalized_input: Tensor = nn.functional.layer_norm(_input, (_input.shape[1:]))
+        input_gamma: float = normalized_input.abs().max().item()
+        # print("absmax = ", input_gamma)
+        weight_abs_mean: float = self.weight.abs().mean().item()
+
+        binarized_weights = self.binarize_weights(weight_abs_mean)
+        input_quant = self.quantize_activations(normalized_input, input_gamma)
+        output = torch.nn.functional.conv2d(
+            input=input_quant,
+            weight=binarized_weights,
+            bias=self.bias,
+            stride=self.stride,
+            padding=self.padding,
+            dilation=self.dilation,
+            groups=self.groups
+        )#input=input_quant
+        # if torch.any(torch.abs(output) >= 128):
+        #     print("alarm! int8 overflow")
+        if self.toDequant:
+            output = self.dequantize_activations(output, input_gamma, weight_abs_mean)
+        
+        return output
+
+
+class BitConvDWsep(nn.Module):
+    """Standard Bitnet convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
+    default_act = nn.SiLU()  # default activation
+    def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+        """Initialize Conv layer with given arguments including activation."""
+        super().__init__()
+        self.bitConvDepth = BitConv(toDequant=False, in_channels = c1, 
+                                    out_channels =c1, 
+                                    kernel_size =k, 
+                                    stride = s, 
+                                    padding = autopad(k, p, d), 
+                                    dilation = 1,
+                                    groups =c1,
+                                    bias = False)
+        self.bitConvSep = BitConv(toDequant=True, in_channels = c1, 
+                                  out_channels = c2, 
+                                  kernel_size=1, 
+                                  stride = 1,
+                                  padding= 0, 
+                                  dilation=1,
+                                  groups = 1,
+                                  bias=False)
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+    def forward(self, x):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        return self.act(self.bitConvSep(self.bitConvDepth(x)))
+
+
+
+
+
 
 
 class Conv(nn.Module):
