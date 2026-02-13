@@ -137,8 +137,9 @@ class BitConvDWsep(nn.Module):
 
     def forward(self, x):
         """Apply convolution, batch normalization and activation to input tensor."""
-        return self.act(self.bn(self.bitConv(x)))
-        # return self.act(self.bn(self.conv(x)))
+        #return self.act(self.bn(self.bitConv(x)))
+        # return self.act(self.bitConv(x))
+        return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
         """Apply convolution and activation without batch normalization."""
