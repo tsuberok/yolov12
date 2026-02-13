@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+from ultralytics.utils import LOGGER
+
 __all__ = (
     "BitConvDWsep",
     "Conv",
@@ -138,13 +140,13 @@ class BitConvDWsep(nn.Module):
     def forward(self, x):
         """Apply convolution, batch normalization and activation to input tensor."""
         #return self.act(self.bn(self.bitConv(x)))
-        print("FORWARD BITCONV UNFUSED")
+        LOGGER.info("FORWARD BITCONV UNFUSED")
         return self.act(self.bitConv(x))
         # return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
         """Apply convolution and activation without batch normalization."""
-        print("FORWARD BITCONV FUSED")
+        LOGGER.info("FORWARD BITCONV FUSED")
         return self.act(self.bitConv(x))
 
 
