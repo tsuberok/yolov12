@@ -40,6 +40,8 @@ from ultralytics.nn.modules import (
     Classify,
     Concat,
     Conv,
+    BitConv,
+    BitConvDWsep,
     Conv2,
     ConvTranspose,
     Detect,
