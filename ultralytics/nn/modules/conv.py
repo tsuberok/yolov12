@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch import Tensor
 
 __all__ = (
-    "BitConv",
+    "BitConvDWsep",
     "Conv",
     "Conv2",
     "LightConv",
