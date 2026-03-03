@@ -70,12 +70,12 @@ class BitConv(nn.Conv2d):
         # print("input mean and sd = ", torch.mean(_input).item(), torch.std(_input).item()) #debug info
         # print("max and min = ", torch.max(_input).item(), torch.min(_input).item())
         normalized_input: Tensor = nn.functional.layer_norm(_input, (_input.shape[1:]))
-        input_gamma: float = normalized_input.abs().max().item()
+        input_gamma: float = _input.abs().max().item()#normalized_input
         # print("absmax = ", input_gamma)
         weight_abs_mean: float = self.weight.abs().mean().item()
 
         binarized_weights = self.binarize_weights(weight_abs_mean)
-        input_quant = self.quantize_activations(normalized_input, input_gamma)
+        input_quant = self.quantize_activations(_input, input_gamma)#normalized input
         output = torch.nn.functional.conv2d(
             input=input_quant,
             weight=binarized_weights,
@@ -95,30 +95,7 @@ class BitConv(nn.Conv2d):
 
 class BitConvDWsep(nn.Module):
     """Standard Bitnet convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)."""
-    # default_act = nn.SiLU()  # default activation
-    # def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
-    #     """Initialize Conv layer with given arguments including activation."""
-    #     super().__init__()
-    #     self.bitConvDepth = BitConv(toDequant=False, in_channels = c1, 
-    #                                 out_channels =c1, 
-    #                                 kernel_size =k, 
-    #                                 stride = s, 
-    #                                 padding = autopad(k, p, d), 
-    #                                 dilation = 1,
-    #                                 groups = c1,
-    #                                 bias = False)
-    #     self.bitConvSep = BitConv(toDequant=True, in_channels = c1, 
-    #                               out_channels = c2, 
-    #                               kernel_size=1, 
-    #                               stride = 1,
-    #                               padding= 0, 
-    #                               dilation=1,
-    #                               groups = 1,
-    #                               bias=False)
-    #     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-    # def forward(self, x):
-    #     """Apply convolution, batch normalization and activation to input tensor."""
-    #     return self.act(self.bitConvSep(self.bitConvDepth(x)))
+    
     default_act = nn.SiLU()  # default activation
 
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
@@ -177,37 +154,6 @@ class Conv(nn.Module):
     #     return self.act(self.conv(x))
 
     
-    # default_act = nn.SiLU()  # default activation
-
-    # def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
-    #     """Initialize Conv layer with given arguments including activation."""
-    #     super().__init__()
-    #     self.bitConv = BitConv(toDequant=True,
-    #                            in_channels = c1,
-    #                            out_channels = c2,
-    #                            kernel_size = k,
-    #                            stride = s,
-    #                            padding = autopad(k, p, d),
-    #                            dilation = d,
-    #                            groups = g, 
-    #                            bias = False)
-    #     self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
-    #     self.bn = nn.BatchNorm2d(c2)
-    #     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-
-    # def forward(self, x):
-    #     """Apply convolution, batch normalization and activation to input tensor."""
-    #     #return self.act(self.bn(self.bitConv(x)))
-    #     # LOGGER.info("FORWARD BITCONV UNFUSED")
-    #     return self.act(self.bitConv(x))
-    #     # return self.act(self.bn(self.conv(x)))
-
-    # def forward_fuse(self, x):
-    #     """Apply convolution and activation without batch normalization."""
-    #     # LOGGER.info("FORWARD BITCONV FUSED")
-    #     return self.act(self.bitConv(x))
-
-
 
 
     default_act = nn.SiLU()  # default activation
