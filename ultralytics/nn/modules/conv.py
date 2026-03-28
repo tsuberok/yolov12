@@ -38,7 +38,7 @@ def autopad(k, p=None, d=1):  # kernel, padding, dilation
     return p
 
 class BitConv(nn.Conv2d):
-    def __init__(self, toDequant: bool, *args, num_bits: int = 8, **kwargs):
+    def __init__(self, toDequant: bool, *args, num_bits: int = 4, **kwargs):
         super().__init__(*args, **kwargs)
         self.num_bits = num_bits
         self.toDequant = toDequant
@@ -75,7 +75,7 @@ class BitConv(nn.Conv2d):
         weight_abs_mean: float = self.weight.abs().mean().item()
 
         binarized_weights = self.binarize_weights(weight_abs_mean)
-        input_quant = self.quantize_activations(_input, input_gamma)#normalized input
+        input_quant = self.quantize_activations(normalized_input, input_gamma)#normalized input
         output = torch.nn.functional.conv2d(
             input=input_quant,
             weight=binarized_weights,
@@ -156,7 +156,7 @@ class Conv(nn.Module):
     
 
 
-    default_act = nn.ReLU()  # default activation
+    default_act = nn.SiLU()  # default activation
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
         """Initialize Conv layer with given arguments including activation."""
         super().__init__()
