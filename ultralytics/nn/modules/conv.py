@@ -85,6 +85,7 @@ class BitConv(nn.Conv2d):
             dilation=self.dilation,
             groups=self.groups
         )#input=input_quant
+        output = torch.clamp(output, -128, 127)
         # if torch.any(torch.abs(output) >= 128):
         #     print("alarm! int8 overflow")
         if self.toDequant:
